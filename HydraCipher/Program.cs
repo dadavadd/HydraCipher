@@ -24,20 +24,32 @@ var integerObfuscationOption = new Option<bool>(
     "--integers",
     "Enable integer obfuscation");
 
+var inMemoryOption = new Option<bool>(
+    "--in-memory",
+    "Enable in-memory obfuscation");
+
 rootCommand.AddOption(inputOption);
 rootCommand.AddOption(outputOption);
 rootCommand.AddOption(stringObfuscationOption);
 rootCommand.AddOption(integerObfuscationOption);
+rootCommand.AddOption(inMemoryOption);
 
-rootCommand.SetHandler((input, output, stringObfuscation, integerObfuscation) =>
+rootCommand.SetHandler((string input, string output, bool stringObfuscation, bool integerObfuscation, bool inMemory) =>
 {
     if (string.IsNullOrEmpty(output))
     {
         output = input.Insert(input.Length - 4, "_patched");
     }
 
-    using var runtimeAsm = ModuleDefinition.ReadModule(Runtime.RuntimeStream);
-    using var mod = ModuleDefinition.ReadModule(input, new() { InMemory = true });
+    var readParameters = new ReaderParameters 
+    {
+        InMemory = inMemory,
+        ReadWrite = true
+    };
+
+    using var runtimeAsm = ModuleDefinition.ReadModule(Runtime.RuntimeStream, readParameters);
+    using var mod = ModuleDefinition.ReadModule(input, readParameters);
+
 
     var pipeline = new ObfuscationPipeline();
 
@@ -46,11 +58,14 @@ rootCommand.SetHandler((input, output, stringObfuscation, integerObfuscation) =>
 
     if (integerObfuscation)
         pipeline.AddObfuscator(new IntegerObfuscator(mod, runtimeAsm));
-
-    pipeline.Run();
-
-    mod.Write(output);
-    Console.WriteLine($"Obfuscation completed. Output saved to: {output}");
-}, inputOption, outputOption, stringObfuscationOption, integerObfuscationOption);
+        
+    if (pipeline.HasObfuscators)
+    {
+        pipeline.Run();
+        mod.Write(output);
+        Console.WriteLine($"Obfuscation completed. Output saved to: {output}");
+    }
+    
+}, inputOption, outputOption, stringObfuscationOption, integerObfuscationOption, inMemoryOption);
 
 return await rootCommand.InvokeAsync(args);

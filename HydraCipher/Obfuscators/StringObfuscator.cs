@@ -22,18 +22,25 @@ public class StringObfuscator : Obfuscator
 
     public override void Obfuscate()
     {
-        foreach (var (instr, method) in Module.GetAllTypes()
-            .SelectMany(t => t.Methods.Where(m => m.HasBody)
-            .SelectMany(m => m.Body.Instructions
-            .Where(i => i.OpCode == OpCodes.Ldstr)
-            .Select(i => (i, m))))
-            .ToList())
+        foreach (var (instruction, method) in GetAllInstructions(op => op == OpCodes.Ldstr))
         {
-            var il = method.Body.GetILProcessor();
-            il.InsertBefore(instr, Instruction.Create(OpCodes.Ldstr, ObfuscateString((string)instr.Operand).ToString()));
-            il.InsertBefore(instr, Instruction.Create(OpCodes.Call, Module.ImportReference(new MethodReference("Parse", Module.ImportReference(typeof(BigInteger)), Module.ImportReference(typeof(BigInteger))) { HasThis = false, Parameters = { new(Module.TypeSystem.String) } })));
-            il.InsertBefore(instr, Instruction.Create(OpCodes.Call, _decryptRef));
-            il.Remove(instr);
+            var ilProcessor = method.Body.GetILProcessor();
+            var stringValue = (string)instruction.Operand;
+            var obfuscatedString = ObfuscateString(stringValue).ToString();
+
+            var bigIntegerParseMethod = new MethodReference("Parse", 
+                Module.ImportReference(typeof(BigInteger)),
+                Module.ImportReference(typeof(BigInteger)))
+            {
+                HasThis = false,
+                Parameters = { new(Module.TypeSystem.String) }
+            };
+
+            ilProcessor.InsertBefore(instruction, Instruction.Create(OpCodes.Ldstr, obfuscatedString));
+            ilProcessor.InsertBefore(instruction, Instruction.Create(OpCodes.Call, Module.ImportReference(bigIntegerParseMethod)));
+            ilProcessor.InsertBefore(instruction, Instruction.Create(OpCodes.Call, _decryptRef));
+            
+            ilProcessor.Remove(instruction);
             method.Body.SimplifyMacros();
             method.Body.OptimizeMacros();
         }
