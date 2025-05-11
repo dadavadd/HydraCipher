@@ -4,7 +4,7 @@ using Mono.Cecil.Rocks;
 
 namespace HydraCipher.Obfuscators;
 
-public class IntegerObfuscator(ModuleDefinition module,
+public class IntegerObfuscation(ModuleDefinition module,
                                ModuleDefinition runtimeModule) : Obfuscator(module, runtimeModule)
 {
     public override void Obfuscate()
@@ -29,6 +29,26 @@ public class IntegerObfuscator(ModuleDefinition module,
         }
     }
 
+    public bool IsLdcI4(OpCode opCode)
+    {
+        return opCode.Code switch
+        {
+            Code.Ldc_I4_M1 or
+            Code.Ldc_I4_0 or
+            Code.Ldc_I4_1 or
+            Code.Ldc_I4_2 or
+            Code.Ldc_I4_3 or
+            Code.Ldc_I4_4 or
+            Code.Ldc_I4_5 or
+            Code.Ldc_I4_6 or
+            Code.Ldc_I4_7 or
+            Code.Ldc_I4_8 or
+            Code.Ldc_I4_S or
+            Code.Ldc_I4 => true,
+            _ => false
+        };
+    }
+
     private static int GetInt32Value(Instruction instr) => instr.OpCode.Code switch
     {
         Code.Ldc_I4_M1 => -1,
@@ -44,4 +64,4 @@ public class IntegerObfuscator(ModuleDefinition module,
         Code.Ldc_I4_S => (sbyte)instr.Operand,
         _ => instr.Operand is int i ? i : 0
     };
-}
+} 

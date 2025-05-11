@@ -7,11 +7,11 @@ using Mono.Cecil.Rocks;
 
 namespace HydraCipher.Obfuscators;
 
-public class StringObfuscator : Obfuscator
+public class StringObfuscation : Obfuscator
 {
     private readonly MethodReference _decryptRef;
 
-    public StringObfuscator(ModuleDefinition module,
+    public StringObfuscation(ModuleDefinition module,
                           ModuleDefinition runtimeModule) : base(module, runtimeModule)
     {
         var decryptSrc = RuntimeModule.Types.SelectMany(t => t.Methods).First(m => m.Name == "Deobfuscate");

@@ -45,46 +45,39 @@ namespace HydraCipher
             }
         }
 
-        public bool IsAsyncStateMachine(MethodDefinition method)
+        public bool IsAsyncStateMachineMethod(MethodDefinition method)
         {
-            if (method.DeclaringType.Name.Contains("d__") || 
-                method.DeclaringType.Name.Contains("<>") ||
-                method.DeclaringType.Name.Contains("__"))
+            if (method.CustomAttributes.Any(attr => 
+                attr.AttributeType.Name == "AsyncStateMachineAttribute"))
             {
                 return true;
             }
 
-            if (method.CustomAttributes.Any(attr => 
-                attr.AttributeType.Name == "AsyncStateMachineAttribute" ||
-                attr.AttributeType.Name == "CompilerGeneratedAttribute"))
+            return IsAsyncStateMachineType(method.DeclaringType);
+        }
+
+        public bool IsAsyncStateMachineType(TypeDefinition type)
+        {
+            if (type.CustomAttributes.Any(attr =>
+                attr.AttributeType.Name == "AsyncStateMachineAttribute"))
             {
                 return true;
+            }
+
+            if (type.Name.Contains("d__") || type.Name.Contains("<>"))
+            {
+                return true;
+            }
+
+            if (type.DeclaringType != null)
+            {
+                return IsAsyncStateMachineType(type.DeclaringType);
             }
 
             return false;
         }
 
         public bool IsGlobalModuleType(TypeDefinition type) => type.Name == "<Module>";
-
-        public bool IsLdcI4(OpCode opCode)
-        {
-            return opCode.Code switch
-            {
-                Code.Ldc_I4_M1 or
-                Code.Ldc_I4_0 or
-                Code.Ldc_I4_1 or
-                Code.Ldc_I4_2 or
-                Code.Ldc_I4_3 or
-                Code.Ldc_I4_4 or
-                Code.Ldc_I4_5 or
-                Code.Ldc_I4_6 or
-                Code.Ldc_I4_7 or
-                Code.Ldc_I4_8 or
-                Code.Ldc_I4_S or
-                Code.Ldc_I4 => true,
-                _ => false
-            };
-        }
 
         public abstract void Obfuscate();
     }
